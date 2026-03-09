@@ -117,6 +117,37 @@ node index.js
 - สคริปต์ส่ง **ping** ทุก 30 วินาที และตรวจ Premiere Pro ทุก 15 วินาที
 - สถานะ: **Working** (Premiere เปิด), **Idle** (Premiere ปิดแต่มี ping), **Offline** (ไม่มี ping เกิน 2 นาที)
 
+### 4.6 Deployment (การนำขึ้นใช้งาน)
+
+โฮสต์ backend และ watcher บนบริการแบบฟรี เช่น [Render.com](https://render.com) หรือ [Railway.app]
+โดยใช้ GitHub repository นี้ (https://github.com/kimpk63/StatusPR.git)
+และ deploy frontend เป็น static site บน Netlify/Vercel/Cloudflare.
+
+ตัวอย่างขั้นตอนสำหรับ Render:
+
+1. สร้าง account, เชื่อมกับ GitHub, คลิก "New Web Service" แล้วเลือก repo `StatusPR`
+2. กำหนด build command: `cd backend && npm install` และ start command:
+   `cd backend && npm start`
+3. ตั้ง Environment Variables ตาม `.env.example` (PORT, API_KEY, GOOGLE_...)
+4. สร้าง Background Worker ชื่อ `statuspr-watcher` ใช้ start command:
+   `cd backend && npm run drive-watch` (หรือใช้ Render cron ping เพื่อปลุกทุกนาที)
+5. ผลลัพธ์จะได้ URL เช่น `https://statuspr-backend.onrender.com`
+
+สำหรับ frontend:
+
+1. บน Netlify สร้าง "New site from Git" แล้วเลือก repo เดียวกัน
+2. เซ็ต build command `npm run build` และ publish directory `frontend/dist`
+3. ตั้ง Environment Variable `VITE_API_BASE_URL` ให้ชี้ไปที่ URL backend
+4. หลัง deploy จะได้ URL เช่น `https://statuspr-dashboard.netlify.app`
+
+คุณสามารถใช้โดเมนของตัวเองโดยตั้ง CNAME/ALIAS ให้ชี้ไปยัง
+URL ของบริการที่เลือก (Render, Netlify, ฯลฯ)
+
+
+
+
+
+
 ---
 
 ## 4. เชื่อมต่อ Google Drive API

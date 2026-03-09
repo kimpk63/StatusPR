@@ -4,14 +4,29 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const config = require('./config');
 const { setServer } = require('./socket');
-const db = require('./db');
+let db = require('./db');
 const statusRouter = require('./routes/status');
+
+// make sure the database is initialized (tables exist)
+try {
+  // run a simple query to detect missing table
+  db.prepare('SELECT 1 FROM employees LIMIT 1').get();
+} catch (e) {
+  console.warn('Database not initialized, running init script...');
+  require('./database/init');
+  // reload db connection after creation
+  db = require('./db');
+}
 
 const EMPLOYEE_ID = 1;
 const PING_TIMEOUT_MS = 2 * 60 * 1000;
 
 const app = express();
-app.use(cors());
+// allow CORS from specific origins (frontend URL) or wildcard
+const corsOptions = {
+  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/api/status', statusRouter);

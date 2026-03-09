@@ -1,0 +1,57 @@
+# render.yaml configuration for deploying backend and drive watcher worker
+# documentation: https://render.com/docs/deploy-templates
+
+services:
+  - type: web
+    name: statuspr-backend
+    env: node
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: "cd backend && npm install"
+    startCommand: "cd backend && npm start"
+    envVars:
+      - key: PORT
+        fromSecret: PORT
+      - key: API_KEY
+        fromSecret: API_KEY
+      - key: DATABASE_PATH
+        fromSecret: DATABASE_PATH
+      - key: GOOGLE_CLIENT_ID
+        fromSecret: GOOGLE_CLIENT_ID
+      - key: GOOGLE_CLIENT_SECRET
+        fromSecret: GOOGLE_CLIENT_SECRET
+      - key: GOOGLE_REDIRECT_URI
+        fromSecret: GOOGLE_REDIRECT_URI
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        fromSecret: GOOGLE_DRIVE_FOLDER_ID
+      - key: GOOGLE_DRIVE_OUTPUT_FOLDER_ID
+        fromSecret: GOOGLE_DRIVE_OUTPUT_FOLDER_ID
+      - key: GOOGLE_DRIVE_INPUT_FOLDER_ID
+        fromSecret: GOOGLE_DRIVE_INPUT_FOLDER_ID
+  - type: worker
+    name: statuspr-watcher
+    env: node
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: "cd backend && npm install"
+    startCommand: "cd backend && npm run drive-watch"
+    healthCheckPath: "/"
+    envVars:
+      - key: API_KEY
+        fromSecret: API_KEY
+      - key: DATABASE_PATH
+        fromSecret: DATABASE_PATH
+      - key: GOOGLE_CLIENT_ID
+        fromSecret: GOOGLE_CLIENT_ID
+      - key: GOOGLE_CLIENT_SECRET
+        fromSecret: GOOGLE_CLIENT_SECRET
+      - key: GOOGLE_REDIRECT_URI
+        fromSecret: GOOGLE_REDIRECT_URI
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        fromSecret: GOOGLE_DRIVE_FOLDER_ID
+      - key: GOOGLE_DRIVE_OUTPUT_FOLDER_ID
+        fromSecret: GOOGLE_DRIVE_OUTPUT_FOLDER_ID
+      - key: GOOGLE_DRIVE_INPUT_FOLDER_ID
+        fromSecret: GOOGLE_DRIVE_INPUT_FOLDER_ID
