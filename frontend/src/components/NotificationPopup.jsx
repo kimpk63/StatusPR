@@ -15,6 +15,15 @@ function NotificationPopup({ notifications, onMarkRead, onClose, realTimeNotific
   useEffect(() => {
     if (!realTimeNotification) return;
     setToast(realTimeNotification);
+  
+  // เล่นเสียง notification
+    try {
+      const audio = new Audio('/notification.mp3');
+      audio.play();
+    } catch (err) {
+      console.log('Could not play notification sound:', err);
+    }
+  
     const t = setTimeout(() => setToast(null), 5000);
     return () => clearTimeout(t);
   }, [realTimeNotification]);
