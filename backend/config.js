@@ -11,6 +11,6 @@ module.exports = {
     inputFolderId: process.env.GOOGLE_DRIVE_INPUT_FOLDER_ID,
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/drive/callback',
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || 'https://statuspr.onrender.com/api/drive/callback',
   },
 };
