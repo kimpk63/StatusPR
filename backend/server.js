@@ -40,7 +40,10 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: ['http://localhost:3000', 'http://127.0.0.1:3000'], methods: ['GET', 'POST'] },
+  cors: { 
+    origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',
+    methods: ['GET', 'POST'] 
+  },
 });
 setServer(io);
 
