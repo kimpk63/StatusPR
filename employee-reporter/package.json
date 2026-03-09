@@ -1,0 +1,11 @@
+{
+  "name": "status-pr-reporter",
+  "version": "1.0.0",
+  "description": "รายงานสถานะ Premiere Pro ไปยัง Dashboard",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "run": "node index.js"
+  },
+  "dependencies": {}
+}
