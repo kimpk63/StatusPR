@@ -1,8 +1,9 @@
 const http = require("http");
+const https = require("https");
 const { exec } = require("child_process");
 const os = require("os");
 
-const SERVER_URL = "http://localhost:3001/api/status";
+const SERVER_URL = "https://statuspr.onrender.com/api";
 const CHECK_INTERVAL = 15000;
 
 let lastStatus = null;
@@ -36,12 +37,11 @@ function sendStatus(status) {
     status: status,
   });
 
-  const url = new URL(SERVER_URL);
-
+  const protocol = https;
   const options = {
-    hostname: url.hostname,
-    port: url.port,
-    path: url.pathname,
+    hostname: "statuspr.onrender.com",
+    port: 443,
+    path: "/api/status",
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -49,12 +49,13 @@ function sendStatus(status) {
     },
   };
 
-  const req = http.request(options, (res) => {
+  const req = protocol.request(options, (res) => {
+    console.log(`[${new Date().toISOString()}] Status sent: ${status} (HTTP ${res.statusCode})`);
     res.on("data", () => {});
   });
 
   req.on("error", (err) => {
-    console.error("Send error:", err.message);
+    console.error("[ERROR] Send failed:", err.message);
   });
 
   req.write(data);
