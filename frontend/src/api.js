@@ -1,4 +1,5 @@
-const BASE = '/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://statuspr.onrender.com';
+const BASE = `${BASE_URL}/api`;
 
 export async function getStatus() {
   const r = await fetch(`${BASE}/status`);

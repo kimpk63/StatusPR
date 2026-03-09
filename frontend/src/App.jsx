@@ -62,7 +62,8 @@ function App() {
   }, [fetchAll]);
 
   useEffect(() => {
-    const socket = io(window.location.origin, { path: '/socket.io', transports: ['websocket', 'polling'] });
+    const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://statuspr.onrender.com';
+    const socket = io(BACKEND_URL, { path: '/socket.io', transports: ['websocket', 'polling'] });
     socketRef.current = socket;
     socket.on('status', (data) => {
       setStatus((prev) => (prev ? { ...prev, status: data.status, startedAt: data.startedAt } : null));
