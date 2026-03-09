@@ -1,7 +1,7 @@
 [build]
   base = "frontend"
   publish = "frontend/dist"
-  command = "npm run build"
+  command = "npm install && npm run build"
 
 [build.environment]
   # set API base after deployment
