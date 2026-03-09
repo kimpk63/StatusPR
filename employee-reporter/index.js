@@ -75,6 +75,7 @@ async function checkStatus() {
 }
 
 console.log("Employee Reporter started");
+console.log("Server URL:", SERVER_URL);
 
 setInterval(checkStatus, CHECK_INTERVAL);
 
