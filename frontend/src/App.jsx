@@ -1,3 +1,4 @@
+import { requestPermissionAndGetToken, setupMessageListener } from './firebase-config';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import {
@@ -60,6 +61,11 @@ function App() {
     const timer = setInterval(fetchAll, FALLBACK_REFRESH_MS);
     return () => clearInterval(timer);
   }, [fetchAll]);
+
+  useEffect(() => {
+    requestPermissionAndGetToken();
+    setupMessageListener();
+  }, []);
 
   useEffect(() => {
     const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://statuspr.onrender.com';
