@@ -3,16 +3,22 @@ const router = express.Router();
 const db = require('../db');
 const { requireApiKey } = require('../middleware/apiKey');
 const { emitToDashboard } = require('../socket');
+const { sendNotification } = require('../services/firebase');
 
 const EMPLOYEE_ID = 1;
-const PING_TIMEOUT_MS = 2 * 60 * 1000; // 2 นาที
+const PING_TIMEOUT_MS = 2 * 60 * 1000;
 
 function isOfflineByPing(lastPing) {
   if (!lastPing) return true;
   return Date.now() - new Date(lastPing).getTime() > PING_TIMEOUT_MS;
 }
 
-// GET สถานะพนักงานปัจจุบัน (working | idle | offline)
+function getDeviceTokens() {
+  try {
+    return db.prepare('SELECT token FROM device_tokens WHERE employee_id = ?').all(EMPLOYEE_ID).map(r => r.token);
+  } catch { return []; }
+}
+
 router.get('/', (req, res) => {
   try {
     const employee = db.prepare('SELECT * FROM employees WHERE id = ?').get(EMPLOYEE_ID);
@@ -50,13 +56,12 @@ router.get('/', (req, res) => {
   }
 });
 
-// POST /api/status/ping — Employee Reporter ส่งทุก 30 วินาที (ต้องมี x-api-key ถ้า API_KEY ตั้งไว้)
 router.post('/ping', requireApiKey, (req, res) => {
   try {
     const now = new Date().toISOString();
     db.prepare('UPDATE employees SET last_ping = ? WHERE id = ?').run(now, EMPLOYEE_ID);
 
-    const { status } = req.body; // 'working' | 'idle'
+    const { status } = req.body;
     const currentSession = db.prepare(`
       SELECT id FROM work_sessions WHERE employee_id = ? AND ended_at IS NULL
     `).get(EMPLOYEE_ID);
@@ -74,6 +79,7 @@ router.post('/ping', requireApiKey, (req, res) => {
       `).run(EMPLOYEE_ID);
       emitToDashboard('status', { status: 'working', startedAt: now });
       emitToDashboard('notification', { title: 'เริ่มทำงาน', message: 'พนักงานเริ่มทำงาน' });
+      getDeviceTokens().forEach(token => sendNotification(token, 'เริ่มทำงาน', 'พนักงานเริ่มทำงาน (Premiere Pro Active)'));
     } else if (status === 'idle' && currentSession) {
       db.prepare(`
         UPDATE work_sessions SET ended_at = ? WHERE employee_id = ? AND ended_at IS NULL
@@ -82,6 +88,7 @@ router.post('/ping', requireApiKey, (req, res) => {
         INSERT INTO activities (employee_id, type, description) VALUES (?, 'stop_work', 'พนักงานหยุดทำงาน')
       `).run(EMPLOYEE_ID);
       emitToDashboard('status', { status: 'idle', startedAt: null });
+      getDeviceTokens().forEach(token => sendNotification(token, 'หยุดทำงาน', 'พนักงานหยุดทำงาน'));
     }
 
     res.json({ ok: true, lastPing: now });
@@ -91,7 +98,6 @@ router.post('/ping', requireApiKey, (req, res) => {
   }
 });
 
-// POST อัปเดตสถานะ (working | offline) — ใช้ร่วมกับ ping
 router.post('/', requireApiKey, (req, res) => {
   try {
     const { status } = req.body;
@@ -120,6 +126,7 @@ router.post('/', requireApiKey, (req, res) => {
         `).run(EMPLOYEE_ID);
         emitToDashboard('status', { status: 'working', startedAt: now });
         emitToDashboard('notification', { title: 'เริ่มทำงาน', message: 'พนักงานเริ่มทำงาน' });
+        getDeviceTokens().forEach(token => sendNotification(token, 'เริ่มทำงาน', 'พนักงานเริ่มทำงาน (Premiere Pro Active)'));
       }
     } else if (status === 'offline' || status === 'idle') {
       db.prepare(`
@@ -129,6 +136,7 @@ router.post('/', requireApiKey, (req, res) => {
         db.prepare(`
           INSERT INTO activities (employee_id, type, description) VALUES (?, 'stop_work', 'พนักงานหยุดทำงาน (Offline)')
         `).run(EMPLOYEE_ID);
+        getDeviceTokens().forEach(token => sendNotification(token, 'Offline', 'พนักงานออฟไลน์แล้ว'));
       }
       emitToDashboard('status', { status, startedAt: null });
     }
