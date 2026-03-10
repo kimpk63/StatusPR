@@ -24,7 +24,7 @@ export async function requestPermissionAndGetToken() {
       console.log('[Firebase] Notification permission granted');
       
       const token = await getToken(messaging, {
-        vapidKey: "BN3FyhNiQb2qcAGGN4sXIdJOeC_CLjOwbXCo..." // VAPID key เต็มๆ จากรูป
+        vapidKey: "BN3FyhNiQb2qcAGGN4sXIdJ0eC_CLjOwbXCo-wIBP_2I_o_e82tzIGxYM7zm_exhI_UzTWMXuOQBwI3inHVF74A" // VAPID key เต็มๆ จากรูป
       });
       if (token) {
         console.log('[Firebase] FCM Token:', token);
