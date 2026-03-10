@@ -84,6 +84,14 @@ function App() {
       setRealTimeNotification(data);
       setNotifications((prev) => [{ id: Date.now(), ...data, read_at: null, created_at: new Date().toISOString() }, ...prev]);
       fetchAll();
+
+      // ส่ง push notification ไปโทรศัพท์
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(data.title || 'แจ้งเตือน', {
+          body: data.message || data.body || '',
+          icon: '/icon-192x192.png',
+        });
+      }
     });
     socket.on('connect', () => fetchAll());
     return () => {
