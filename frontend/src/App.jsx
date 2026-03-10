@@ -30,6 +30,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [realTimeNotification, setRealTimeNotification] = useState(null);
+  const [notifPermission, setNotifPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  );
   const socketRef = useRef(null);
 
   const fetchAll = useCallback(async () => {
@@ -63,7 +66,6 @@ function App() {
   }, [fetchAll]);
 
   useEffect(() => {
-    requestPermissionAndGetToken();
     setupMessageListener();
   }, []);
 
@@ -96,6 +98,11 @@ function App() {
     );
   };
 
+  const handleEnableNotifications = async () => {
+    await requestPermissionAndGetToken();
+    setNotifPermission(Notification.permission);
+  };
+
   const lastActivityAt = status?.lastActivityAt || (activities.length ? activities[0].created_at : null);
 
   if (loading && !status) {
@@ -116,11 +123,21 @@ function App() {
       />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Some Thing About CC Edit Status
-          </h1>
-          <p className="text-slate-400 mt-1">สถานะการทำงานและกิจกรรมของพนักงาน</p>
+        <header className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              Some Thing About CC Edit Status
+            </h1>
+            <p className="text-slate-400 mt-1">สถานะการทำงานและกิจกรรมของพนักงาน</p>
+          </div>
+          {notifPermission !== 'granted' && (
+            <button
+              onClick={handleEnableNotifications}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+            >
+              🔔 เปิดการแจ้งเตือน
+            </button>
+          )}
         </header>
 
         {error && (
