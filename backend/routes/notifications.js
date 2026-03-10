@@ -45,4 +45,34 @@ router.patch('/:id/read', (req, res) => {
   }
 });
 
+// POST /api/notifications/register-device
+router.post('/register-device', (req, res) => {
+  try {
+    const { deviceToken } = req.body;
+    
+    if (!deviceToken) {
+      return res.status(400).json({ error: 'deviceToken is required' });
+    }
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS device_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        updated_at TEXT NOT NULL
+      )
+    `).run();
+
+    db.prepare(`
+      INSERT OR REPLACE INTO device_tokens (employee_id, token, updated_at)
+      VALUES (?, ?, ?)
+    `).run(EMPLOYEE_ID, deviceToken, new Date().toISOString());
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS device_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  updated_at TEXT NOT NULL
+);
