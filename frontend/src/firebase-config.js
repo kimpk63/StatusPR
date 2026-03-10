@@ -32,7 +32,7 @@ export async function requestPermissionAndGetToken() {
         // ส่ง Token ไปยัง Backend
         try {
           const response = await fetch(
-            (import.meta.env.VITE_API_URL || 'https://statuspr.onrender.com/api') + '/notifications/register-device',
+            (import.meta.env.VITE_API_URL + '/api' || 'https://statuspr.onrender.com/api') + '/notifications/register-device',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
