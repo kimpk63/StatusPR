@@ -6,8 +6,8 @@ const firebaseConfig = {
   authDomain: "statuspr-b065b.firebaseapp.com",
   projectId: "statuspr-b065b",
   storageBucket: "statuspr-b065b.firebasestorage.app",
-  messagingSenderId: "1065812835926",
-  appId: "1:1065812835926:web:ab97f72dd33c6ff7a7dbe7",
+  messagingSenderId: "1058128359206",
+  appId: "1:1058128359206:web:ab97f72dd33c6ff7a7dbe7",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -23,8 +23,9 @@ export async function requestPermissionAndGetToken() {
     if (permission === 'granted') {
       console.log('[Firebase] Notification permission granted');
       
-      const token = await getToken(messaging);
-      
+      const token = await getToken(messaging, {
+        vapidKey: "BN3FyhNiQb2qcAGGN4sXIdJOeC_CLjOwbXCo..." // VAPID key เต็มๆ จากรูป
+      });
       if (token) {
         console.log('[Firebase] FCM Token:', token);
         
