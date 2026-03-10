@@ -20,8 +20,8 @@ function getOAuth2Client() {
 
 function hasTokens() {
   try {
-    const data = fs.readFileSync(TOKEN_PATH, 'utf8');
-    return !!JSON.parse(data).access_token;
+    const tokens = getOrRefreshTokens();
+    return tokens && !!tokens.access_token;
   } catch {
     return false;
   }
@@ -41,15 +41,32 @@ async function handleCallback(code) {
   const client = getOAuth2Client();
   if (!client) throw new Error('Google Drive not configured');
   const { tokens } = await client.getToken(code);
+  
+  // บันทึก Token ทั้งในไฟล์และ Environment
   fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
+  process.env.GOOGLE_DRIVE_TOKEN = JSON.stringify(tokens);
+  
   client.setCredentials(tokens);
+  console.log('[Google Drive] Token saved successfully');
 }
 
 function getOrRefreshTokens() {
   try {
+    // ลองอ่าน Environment ก่อน (ถาวร)
+    if (process.env.GOOGLE_DRIVE_TOKEN) {
+      return JSON.parse(process.env.GOOGLE_DRIVE_TOKEN);
+    }
+    
+    // ถ้าไม่มี ให้อ่านจาก file
     const data = fs.readFileSync(TOKEN_PATH, 'utf8');
-    return JSON.parse(data);
-  } catch {
+    const tokens = JSON.parse(data);
+    
+    // บันทึก Environment ด้วย
+    process.env.GOOGLE_DRIVE_TOKEN = JSON.stringify(tokens);
+    
+    return tokens;
+  } catch (err) {
+    console.log('[Google Drive] No tokens found:', err.message);
     return null;
   }
 }
@@ -62,7 +79,13 @@ async function getDriveClient() {
   client.setCredentials(tokens);
   client.on('tokens', (newTokens) => {
     const existing = getOrRefreshTokens() || {};
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify({ ...existing, ...newTokens }, null, 2));
+    const updated = { ...existing, ...newTokens };
+    
+    // บันทึกทั้งไฟล์และ Environment
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify(updated, null, 2));
+    process.env.GOOGLE_DRIVE_TOKEN = JSON.stringify(updated);
+    
+    console.log('[Google Drive] Token refreshed and saved');
   });
   const drive = google.drive({ version: 'v3', auth: client });
   return drive;
