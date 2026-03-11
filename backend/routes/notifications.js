@@ -1,29 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-
-const EMPLOYEE_ID = 1;
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 // GET รายการแจ้งเตือน (ยังไม่อ่าน หรือทั้งหมด)
-router.get('/', (req, res) => {
+router.get('/', authenticateToken, (req, res) => {
   try {
+    const employeeId = req.user.id;
     const unreadOnly = req.query.unread === 'true';
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = parseInt(req.query.limit, 10) || 20;
 
-    let query = `
+    let sql = `
       SELECT id, type, title, message, file_name, draft_number, read_at, created_at
       FROM notifications
       WHERE employee_id = ?
     `;
-    if (unreadOnly) query += ' AND read_at IS NULL';
-    query += ' ORDER BY created_at DESC LIMIT ?';
+    const params = [employeeId];
+    if (unreadOnly) {
+      sql += ' AND read_at IS NULL';
+    }
+    sql += ' ORDER BY created_at DESC LIMIT ?';
+    params.push(limit);
 
-    const list = db.prepare(query).all(EMPLOYEE_ID, limit)
-      .map((r) => {
-        if (r.created_at && !r.created_at.endsWith('Z')) r.created_at += 'Z';
-        if (r.read_at && !r.read_at.endsWith('Z')) r.read_at += 'Z';
-        return r;
-      });
+    const list = db.prepare(sql).all(...params).map((r) => {
+      if (r.created_at && !r.created_at.endsWith('Z')) r.created_at += 'Z';
+      if (r.read_at && !r.read_at.endsWith('Z')) r.read_at += 'Z';
+      return r;
+    });
     res.json(list);
   } catch (err) {
     console.error(err);
@@ -32,12 +35,13 @@ router.get('/', (req, res) => {
 });
 
 // PATCH mark as read
-router.patch('/:id/read', (req, res) => {
+router.patch('/:id/read', authenticateToken, (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const employeeId = req.user.id;
+    const id = parseInt(req.params.id, 10);
     const now = new Date().toISOString();
     db.prepare('UPDATE notifications SET read_at = ? WHERE id = ? AND employee_id = ?')
-      .run(now, id, EMPLOYEE_ID);
+      .run(now, id, employeeId);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -46,8 +50,9 @@ router.patch('/:id/read', (req, res) => {
 });
 
 // POST /api/notifications/register-device
-router.post('/register-device', (req, res) => {
+router.post('/register-device', authenticateToken, (req, res) => {
   try {
+    const employeeId = req.user.id;
     const { deviceToken } = req.body;
     
     if (!deviceToken) {
@@ -66,7 +71,7 @@ router.post('/register-device', (req, res) => {
     db.prepare(`
       INSERT OR REPLACE INTO device_tokens (employee_id, token, updated_at)
       VALUES (?, ?, ?)
-    `).run(EMPLOYEE_ID, deviceToken, new Date().toISOString());
+    `).run(employeeId, deviceToken, new Date().toISOString());
 
     res.json({ ok: true });
   } catch (err) {
