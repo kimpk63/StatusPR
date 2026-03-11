@@ -46,7 +46,7 @@ function EmployeeRoute({ children }) {
   return user?.role === 'employee' ? children : <AccessDenied />;
 }
 
-function AppContent() {
+function App() {
   const { user, logout } = useAuth();
   const [status, setStatus] = useState(null);
   const [activities, setActivities] = useState([]);
