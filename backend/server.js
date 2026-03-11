@@ -1,11 +1,16 @@
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
+const { verifyAccessToken } = require('./utils/jwt');
 const cors = require('cors');
 const config = require('./config');
 const { setServer } = require('./socket');
 let db = require('./db');
 const statusRouter = require('./routes/status');
+
+// socket state
+let io;
+const activeUsers = new Map();
 
 // make sure the database is initialized (tables exist)
 try {
@@ -30,28 +35,69 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/api/status', statusRouter);
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/activities', require('./routes/activities'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/drive', require('./routes/drive'));
+app.use('/api/videos', require('./routes/videos'));
+app.use('/api/comments', require('./routes/comments'));
+app.use('/api/uploads', require('./routes/uploads'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/logs', require('./routes/logs'));
+
+// new exports + review
+app.use('/api/exports', require('./routes/exports'));
+app.use('/api/review', require('./routes/review'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 const server = http.createServer(app);
-const io = new Server(server, {
+io = new Server(server, {
   cors: { 
     origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',
     methods: ['GET', 'POST'] 
   },
 });
+
+// middleware to validate JWT on socket connection
+io.use((socket, next) => {
+  const token = socket.handshake.auth && socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error('Authentication error')); 
+  }
+  try {
+    const user = verifyAccessToken(token);
+    socket.user = user;
+    next();
+  } catch (err) {
+    console.error('Socket auth failed', err.message);
+    next(new Error('Authentication error'));
+  }
+});
 setServer(io);
 
 io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
   socket.emit('connected', { ts: new Date().toISOString() });
+
+  socket.on('join-video', (videoId) => {
+    socket.join(`video-${videoId}`);
+    if (socket.user && socket.user.id != null) {
+      activeUsers.set(socket.user.id, socket.id);
+    }
+    console.log(`User ${socket.user?.id} joined video ${videoId}`);
+  });
+
+  socket.on('disconnect', () => {
+    activeUsers.forEach((id, userId) => {
+      if (id === socket.id) activeUsers.delete(userId);
+    });
+  });
 });
 
-// Heartbeat: ถ้าไม่มี ping เกิน 2 นาที → Offline
+module.exports = { io }; // export io reference
+
 function checkPingTimeout() {
   try {
     const emp = db.prepare('SELECT last_ping FROM employees WHERE id = ?').get(EMPLOYEE_ID);

@@ -1,5 +1,6 @@
 import { requestPermissionAndGetToken, setupMessageListener } from './firebase-config';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import {
   getStatus,
@@ -10,17 +11,43 @@ import {
   getDraftSummary,
   getLogs,
 } from './api';
-import StatusCard from './components/StatusCard';
-import ActivityTimeline from './components/ActivityTimeline';
-import UploadTable from './components/UploadTable';
-import DraftSummaryTable from './components/DraftSummaryTable';
-import ProductivitySummary from './components/ProductivitySummary';
-import SystemLogs from './components/SystemLogs';
-import NotificationPopup from './components/NotificationPopup';
 
 const FALLBACK_REFRESH_MS = 30 * 1000;
 
-function App() {
+// import page(s)
+import VideoWatchPage from './pages/VideoWatchPage';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import UploadVideoPage from './pages/UploadVideoPage';
+import MyVideosPage from './pages/MyVideosPage';
+import ReviewQueuePage from './pages/ReviewQueuePage';
+import MainLayout from './layouts/MainLayout';
+import AccessDenied from './components/AccessDenied';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+  if (!user) {
+    return <LoginPage />;
+  }
+  return children;
+}
+
+function ManagerRoute({ children }) {
+  const { user } = useAuth();
+  return user?.role === 'manager' ? children : <AccessDenied />;
+}
+
+function EmployeeRoute({ children }) {
+  const { user } = useAuth();
+  return user?.role === 'employee' ? children : <AccessDenied />;
+}
+
+function AppContent() {
+  const { user, logout } = useAuth();
   const [status, setStatus] = useState(null);
   const [activities, setActivities] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -122,79 +149,114 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <NotificationPopup
-        notifications={notifications}
-        onMarkRead={handleMarkRead}
-        onClose={() => {}}
-        realTimeNotification={realTimeNotification}
-      />
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <header className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Some Thing About CC Edit Status
-            </h1>
-            <p className="text-slate-400 mt-1">สถานะการทำงานและกิจกรรมของพนักงาน</p>
-          </div>
-          {notifPermission !== 'granted' && (
-            <button
-              onClick={handleEnableNotifications}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
-            >
-              🔔 เปิดการแจ้งเตือน
-            </button>
-          )}
-        </header>
-
-        {error && (
-          <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
-            ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์: {error}
-          </div>
-        )}
-
-        <section className="mb-8">
-          <StatusCard status={status} />
-        </section>
-
-        <section className="mb-8">
-          <ProductivitySummary stats={statsToday} />
-        </section>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <section className="lg:col-span-1 space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-200 mb-4">Activity Timeline</h2>
-              <ActivityTimeline activities={activities} lastActivityAt={lastActivityAt} />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-200 mb-4">Draft Summary</h2>
-              <DraftSummaryTable draftSummary={draftSummary} />
-            </div>
-          </section>
-
-          <section className="lg:col-span-2">
-            <h2 className="text-lg font-semibold text-slate-200 mb-4">ตารางกิจกรรม</h2>
-            <UploadTable activities={activities} />
-          </section>
-        </div>
-
-        <section>
-          <h2 className="text-lg font-semibold text-slate-200 mb-4">System Logs</h2>
-          <SystemLogs logs={logs} />
-        </section>
-      </div>
-
-      <style>{`
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(1rem); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        .animate-in.slide-in-from-right-5 { animation: slideIn 0.3s ease-out; }
-      `}</style>
-    </div>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout
+                  notifications={notifications}
+                  onMarkRead={handleMarkRead}
+                  realTimeNotification={realTimeNotification}
+                  error={error}
+                  notifPermission={notifPermission}
+                  onEnableNotifications={handleEnableNotifications}
+                  user={user}
+                  logout={logout}
+                >
+                  <DashboardPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video/:videoId"
+            element={
+              <ProtectedRoute>
+                <MainLayout
+                  notifications={notifications}
+                  onMarkRead={handleMarkRead}
+                  realTimeNotification={realTimeNotification}
+                  error={error}
+                  notifPermission={notifPermission}
+                  onEnableNotifications={handleEnableNotifications}
+                  user={user}
+                  logout={logout}
+                >
+                  <VideoWatchPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute>
+                <EmployeeRoute>
+                  <MainLayout
+                    notifications={notifications}
+                    onMarkRead={handleMarkRead}
+                    realTimeNotification={realTimeNotification}
+                    error={error}
+                    notifPermission={notifPermission}
+                    onEnableNotifications={handleEnableNotifications}
+                    user={user}
+                    logout={logout}
+                  >
+                    <UploadVideoPage />
+                  </MainLayout>
+                </EmployeeRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-videos"
+            element={
+              <ProtectedRoute>
+                <EmployeeRoute>
+                  <MainLayout
+                    notifications={notifications}
+                    onMarkRead={handleMarkRead}
+                    realTimeNotification={realTimeNotification}
+                    error={error}
+                    notifPermission={notifPermission}
+                    onEnableNotifications={handleEnableNotifications}
+                    user={user}
+                    logout={logout}
+                  >
+                    <MyVideosPage />
+                  </MainLayout>
+                </EmployeeRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/review"
+            element={
+              <ProtectedRoute>
+                <ManagerRoute>
+                  <MainLayout
+                    notifications={notifications}
+                    onMarkRead={handleMarkRead}
+                    realTimeNotification={realTimeNotification}
+                    error={error}
+                    notifPermission={notifPermission}
+                    onEnableNotifications={handleEnableNotifications}
+                    user={user}
+                    logout={logout}
+                  >
+                    <ReviewQueuePage />
+                  </MainLayout>
+                </ManagerRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/all-videos" element={<Navigate to="/" />} />
+          {/* additional routes for managers etc can be added here */}
+        </Routes>
+      </Router>
   );
 }
-
 export default App;
