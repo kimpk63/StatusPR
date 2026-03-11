@@ -77,15 +77,26 @@ export function setupMessageListener() {
   });
 }
 
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+// Service worker registration is optional because stale caches can break the app
+// set VITE_ENABLE_SW=1 in .env to enable, otherwise we unregister any existing worker.
+(async () => {
+  if (!('serviceWorker' in navigator)) return;
+
+  if (import.meta.env.VITE_ENABLE_SW !== '1') {
+    // unregister any previous worker to avoid old bundle issues
+    const regs = await navigator.serviceWorker.getRegistrations();
+    regs.forEach(r => r.unregister());
+    console.log('[Service Worker] unregistered (disabled by config)');
+    return;
+  }
+
+  navigator.serviceWorker.register('/firebase-messaging-sw.js?v=' + Date.now())
     .then(registration => {
       console.log('[Service Worker] Registered:', registration);
     })
     .catch(error => {
       console.error('[Service Worker] Registration failed:', error);
     });
-}
+})();
 
 export { messaging };
